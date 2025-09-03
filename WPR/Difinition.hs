@@ -2,10 +2,12 @@
 
 module WPR.Difinition where
 
+import WPR.BUFR
 import Data.Binary.Get
 import Data.List (minimumBy)
 import Data.Ord (comparing)
 import Data.Text (Text)
+import qualified Data.Text as T
 
 data Date = Date { year   :: Int
                  , month  :: Int
@@ -21,19 +23,18 @@ type Longtitude = Float
 type Height = Float
 
 instance Show Date where
-  show (Date 0 0 0 h m s) = (showDigitN 2 h) ++ ":" ++ (showDigitN 2 m) ++ ":" ++ (showDigitN 2 s)
-  show (Date y m d 0 0 0) = (showDigitN 2 y) ++ "/" ++ (showDigitN 2 m) ++ "/" ++ (showDigitN 2 d)
-  show (Date y m d h mt s) = show (Date y m d 0 0 0) ++" " ++ show (Date 0 0 0 h mt s)
+  show (Date y m d h mt s) = (showDigitN 2 y) ++"/"++ (showDigitN 2 m) ++"/"++ 
+                             (showDigitN 2 d) ++" "++ (showDigitN 2 h) ++":"++ 
+                             (showDigitN 2 mt)++":"++ (showDigitN 2 s) 
 
 showDigitN n v = replicate (n - length (show v)) '0' ++ show v
 showfDigitN :: Int -> Int -> Float -> String
 showfDigitN i j v = showN i iv ++ "." ++ showN j fv where
   showN :: Int -> String -> String
-  showN n v = take n $ (replicate (n - length v) '0') ++ v
-  (iv, fv) = divide '.' $ show v
-  divide c v = divide' c ([], show v)
-  divide' c (xs,[]) = (xs, [])
-  divide' c (xs,y:ys) = if y == c then (reverse xs,ys) else divide' c (y:xs, ys)
+  showN n v = take n $ (replicate (n - length v) ' ') ++ v
+  (iv, fv) = divide '.' ([], show v)
+divide c (xs,[]) = (xs, [])
+divide c (xs,y:ys) = if y == c then (reverse xs,ys) else divide c (y:xs, ys)
 
 
 data Block1 = Block1 { len :: Int
@@ -61,57 +62,62 @@ instance Show Block1 where
            "----------------------------------------------------------\n" 
 
 data Block3 = Block3 { b3Len         :: Int
-                     , b3Keep        :: Int
+                     , b3Keep        :: Bool
                      , stationN      :: Int
-                     , compress      :: Int
-                     , wmoBlockID    :: Int
-                     , wmoPointID    :: Int
-                     , b3Pos         :: Pos
-                     , antHeight     :: Height
-                     , device        :: Int
-                     , latencyN      :: Int
-                     , repeatN       :: Int
-                     , measDate      :: Date
-                     , timeID        :: Int
-                     , timeSpan      :: Int
-                     , latencyN2     :: Int
-                     , repeatN2      :: Int
-                     , height        :: Height
-                     , localRefWidth :: Int
-                     , qualityInfo   :: Int
-                     , measWind      :: Wind
-                     , sn            :: SN
+                     , compress      :: Bool
+                     , wmoBlockID    :: Bool
+                     , wmoPointID    :: Bool
+                     , b3Pos         :: Bool
+                     , antHeight     :: Bool
+                     , device        :: Bool
+                     , latencyN      :: Bool
+                     , repeatN       :: Bool
+                     , measDate      :: Bool
+                     , timeID        :: Bool
+                     , timeSpan      :: Bool
+                     , latencyN2     :: Bool
+                     , repeatN2      :: Bool
+                     , height        :: Bool
+                     , localRefWidth :: Bool
+                     , qualityInfo   :: Bool
+                     , measWind      :: Bool
+                     , sn            :: Bool
                      }
 instance Show Block3 where
   show b = "----------------------------------------------------------\n" ++
-           "　　　　　　ブロック長: " ++ show (b3Len b) ++ "\n" ++
-           "　　　　　　　　　保留: " ++ show (b3Keep b) ++ "\n" ++
-           "　　　　　　　観測局数: " ++ show (stationN b) ++ "\n" ++
-           "　　　観測資料・非圧縮: " ++ show (compress b) ++ "\n" ++
-           "　　ＷＭＯブロック番号: " ++ show (wmoBlockID b) ++ "\n" ++
-           "　　　　ＷＭＯ地点番号: " ++ show (wmoPointID b) ++ "\n" ++
-           "　　　　（緯度，経度）: " ++ show (b3Pos b) ++ "\n" ++
-           "　　　アンテナ海抜高度: " ++ show (antHeight b) ++ "\n" ++
-           "　　　　　　　使用測器: " ++ show (device b) ++ "\n" ++
-           "　　　　　　　遅延反復: " ++ show (latencyN b) ++ "\n" ++
-           "　　　　　　　反復回数: " ++ show (repeatN b) ++ "\n" ++
-           "　　　　　　　測定日時: " ++ show (measDate b) ++ "\n" ++
-           "　　　　　　　時間特定: " ++ show (timeID b) ++ "\n" ++
-           "　　　　　　　　　期間: " ++ show (timeSpan b) ++ "\n" ++
-           "　　　　　　　遅延反復: " ++ show (latencyN2 b) ++ "\n" ++
-           "　　　　　　　反復回数: " ++ show (repeatN2 b) ++ "\n" ++
-           "観測点高(アンテナ基準): " ++ show (height b) ++ "\n" ++
-           "　ローカル記述子資料幅: " ++ show (localRefWidth b) ++ "\n" ++
-           "　風（東+・北+・鉛直）: " ++ show (measWind b) ++ "\n" ++
-           "　　　　　　　　Ｓ／Ｎ: " ++ show (sn b) ++ "\n"
+           "　　　　　　ブロック長: " ++ show     (b3Len b) ++ "\n" ++
+           "　　　　　　　　　保留: " ++ showBool (b3Keep b) ++ "\n" ++
+           "　　　　　　　観測局数: " ++ show     (stationN b) ++ "\n" ++
+           "　　　観測資料・非圧縮: " ++ showBool (compress b) ++ "\n" ++
+           "　　ＷＭＯブロック番号: " ++ showBool (wmoBlockID b) ++ "\n" ++
+           "　　　　ＷＭＯ地点番号: " ++ showBool (wmoPointID b) ++ "\n" ++
+           "　　　　（緯度，経度）: " ++ showBool (b3Pos b) ++ "\n" ++
+           "　　　アンテナ海抜高度: " ++ showBool (antHeight b) ++ "\n" ++
+           "　　　　　　　使用測器: " ++ showBool (device b) ++ "\n" ++
+           "　　　　　　　遅延反復: " ++ showBool (latencyN b) ++ "\n" ++
+           "　　　　　　　反復回数: " ++ showBool (repeatN b) ++ "\n" ++
+           "　　　　　　　測定日時: " ++ showBool (measDate b) ++ "\n" ++
+           "　　　　　　　時間特定: " ++ showBool (timeID b) ++ "\n" ++
+           "　　　　　　　　　期間: " ++ showBool (timeSpan b) ++ "\n" ++
+           "　　　　　　　遅延反復: " ++ showBool (latencyN2 b) ++ "\n" ++
+           "　　　　　　　反復回数: " ++ showBool (repeatN2 b) ++ "\n" ++
+           "観測点高(アンテナ基準): " ++ showBool (height b) ++ "\n" ++
+           "　ローカル記述子資料幅: " ++ showBool (localRefWidth b) ++ "\n" ++
+           "　　　　　品質管理情報: " ++ showBool (qualityInfo b) ++ "\n" ++
+           "　風（東+・北+・鉛直）: " ++ showBool (measWind b) ++ "\n" ++
+           "　　　　　　　　Ｓ／Ｎ: " ++ showBool (sn b) ++ "\n"
+
+showBool True = "    OK   "
+showBool False = "***NG***"
 
 data Block4 = Block4 { b4Len :: Int
                      , b4Keep :: Int
                      , _wmoBlockID :: Int
                      , _wmoPointID :: Int
+                     , _areaName :: Text
                      , _pos :: Pos
                      , _antHeight :: Height
-                     , _device :: Int
+                     , _device :: Device
                      , _repeatN :: Int
                      , measurement :: [Measurement]
                      } deriving Eq
@@ -124,23 +130,23 @@ data Measurement = Measurement { mDate         :: Date
 
 instance Show Block4 where
    show b = "----------------------------------------------------------\n" ++
-           "　　　　　　ブロック長: " ++ show (b4Len b) ++ "\n" ++ 
-           "保留: " ++ show (b4Keep b) ++ "\n" ++
-           "ＷＭＯブロック番号: " ++ show (_wmoBlockID b) ++ "\n" ++
-           "ＷＭＯ地点番号: " ++ show (_wmoPointID b) ++ "\n" ++
-           "（緯度，経度）: " ++ show (_pos b) ++ "\n" ++
-           "アンテナ海抜高度: " ++ show (_antHeight b) ++ "\n" ++
+           "　　　　ブロック４長: " ++ show (b4Len b) ++ "\n" ++ 
+           "　　　　　　　　保留: " ++ show (b4Keep b) ++ "\n" ++
+           "　　　　　ＷＭＯ番号: " ++ show (1000*(_wmoBlockID b) + _wmoPointID b) ++ "\n" ++
+           "　　　　　　　地点名: " ++ T.unpack (_areaName b) ++ "\n" ++
+           "　　　（緯度，経度）: " ++ show (_pos b) ++ "\n" ++
+           "　　アンテナ海抜高度: " ++ show (_antHeight b) ++ "\n" ++
            "使用測器(ＷＰＲ＝６): " ++ show (_device b) ++ "\n" ++
            "　　　反復回数（Ｘ）: " ++ show (_repeatN b) ++ "\n" ++
            concat (map show $ measurement b) ++
            "                 ------------------------------------------\n"
 
 instance Show Measurement where
-   show m = "　　　測定日時: " ++ show (mDate m) ++ "\n" ++
-            "　　　時間特定: " ++ show (mTimeID m) ++ "\n" ++
-            "　　　　　期間: " ++ show (mSpan m) ++ "\n" ++
-            "反復回数（Ｙ）: " ++ show (mRepeatN m) ++ "\n" ++
-            "　　　　測定値: " ++ concat (map show $ measuredWinds m) ++ "\n" ++
+   show m = "　　　　　測定日時: " ++ show (mDate m) ++ "\n" ++
+            "　　　　　時間特定: " ++ show (mTimeID m) ++ "\n" ++
+            "　　　　　　　期間: " ++ show (mSpan m) ++ "\n" ++
+            "　　反復回数（Ｙ）: " ++ show (mRepeatN m) ++ "\n" ++
+            "　　　　　　測定値:\n" ++ concat (map show $ measuredWinds m) ++ "\n" ++
            "                 ------------------------------------------\n"
 
 
@@ -154,9 +160,11 @@ data MeasuredWind = MeasuredWind {mwHeight :: Height, mwWind :: Wind, mwSN :: SN
 type SN = Float
 data IUPC = IUPC Int deriving (Show, Eq)
 instance Show MeasuredWind where
-  show mw = "　　観測点高: " ++ show (mwHeight mw) ++ "\n" ++
-            "　　（西風，南風，鉛直風） : " ++ show (mwWind mw) ++ 
-            "　　S/N: " ++ show (mwSN mw) ++ "\n"
+  show mw@(MeasuredWind _ (Wind s w _)  _) = 
+            "　　観測点高: " ++ showfDigitN 4 1 (mwHeight mw) ++
+            "　　（南風，西風，鉛直風）＝" ++ show (mwWind mw) ++ 
+            "　　S/N: " ++ showfDigitN 3 1 (mwSN mw)  ++ 
+            "　　風向: " ++ show (calc2DDirection s w) ++ "\n"
 instance Show Wind where
   show (Wind (S s) (W w) (V v)) = "("  ++ showfDigitN 3 1 s ++ 
                                   ", " ++ showfDigitN 3 1 w ++
