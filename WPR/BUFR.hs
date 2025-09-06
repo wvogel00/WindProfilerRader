@@ -263,10 +263,32 @@ bufrFlag u scale refV bits = BUFRFlag u scale refV bits
 -- BUFRFlag = Flag Unit (Scale Int) (RefV Int) (InfoBit Int) deriving Eq, Show
 bufrAtTableRef :: TableRefID -> BUFRFlag
 bufrAtTableRef (FXY 0   2   1) = bufrFlag NA 0 0 2 
-bufrAtTableRef (FXY 0   2   1) = bufrFlag NA 0 0 2 
-bufrAtTableRef (FXY 0   2   1) = bufrFlag NA 0 0 2 
-bufrAtTableRef (FXY 0   2   1) = bufrFlag NA 0 0 2 
-bufrAtTableRef (FXY 0   2   1) = bufrFlag NA 0 0 2 
+bufrAtTableRef (FXY 0   2   2) = bufrFlag NA 0 0 4 
+bufrAtTableRef (FXY 0   2   3) = bufrFlag NA 0 0 4 
+bufrAtTableRef (FXY 0   2   4) = bufrFlag NA 0 0 4 
+bufrAtTableRef (FXY 0   2   5) = bufrFlag NA 2 0 7 
+bufrAtTableRef (FXY 0   2   7) = bufrFlag NA 0 0 6 
+-- 時間関連
+bufrAtTableRef (FXY 0   4   1) = bufrFlag NA 0 0 12 -- year 
+bufrAtTableRef (FXY 0   4   2) = bufrFlag NA 0 0  4 -- month 
+bufrAtTableRef (FXY 0   4   3) = bufrFlag NA 0 0  6 -- day 
+bufrAtTableRef (FXY 0   4   4) = bufrFlag NA 0 0  5 -- hour
+bufrAtTableRef (FXY 0   4   5) = bufrFlag NA 0 0  6 -- minute
+bufrAtTableRef (FXY 0   4   6) = bufrFlag NA 0 0  6 -- second 
+bufrAtTableRef (FXY 0   4   7) = bufrFlag NA 6 0 26 -- seconds (us) 
+bufrAtTableRef (FXY 0   4  11) = bufrFlag NA 0 (-1024)  11 -- year増分 
+bufrAtTableRef (FXY 0   4  12) = bufrFlag NA 0 (-1024)  11 -- year増分 
+bufrAtTableRef (FXY 0   4  13) = bufrFlag NA 0 (-1024)  11 -- year増分 
+bufrAtTableRef (FXY 0   4  14) = bufrFlag NA 0 (-1024)  11 -- year増分 
+bufrAtTableRef (FXY 0   4  15) = bufrFlag NA 0 (-1024)  12 -- year増分 
+bufrAtTableRef (FXY 0   4  16) = bufrFlag NA 0 (-4096)  13 -- year増分 
+bufrAtTableRef (FXY 0   4  21) = bufrFlag NA 0 (-1024)  11 -- year期間 or 時間変位
+bufrAtTableRef (FXY 0   4  22) = bufrFlag NA 0 (-1024)  11 -- month期間 or 時間変位
+bufrAtTableRef (FXY 0   4  23) = bufrFlag NA 0 (-1024)  11 -- day期間 or 時間変位
+bufrAtTableRef (FXY 0   4  24) = bufrFlag NA 0 (-2048)  12 -- hour期間 or 時間変位
+bufrAtTableRef (FXY 0   4  25) = bufrFlag NA 0 (-2048)  12 -- minute期間 or 時間変位
+bufrAtTableRef (FXY 0   4  26) = bufrFlag NA 0 (-4096)  13 -- second期間 or 時間変位
+
 bufrAtTableRef (FXY 0   5   1) = bufrFlag DEG 5 (-9000000) 25 
 bufrAtTableRef (FXY 0   5   2) = bufrFlag DEG 2 (-   9000) 15
 bufrAtTableRef (FXY 0   5  11) = bufrFlag DEG 5 (-9000000) 25 
@@ -275,6 +297,9 @@ bufrAtTableRef (FXY 0   5  15) = bufrFlag DEG 5 (-9000000) 25
 bufrAtTableRef (FXY 0   5  16) = bufrFlag DEG 2 (-   9000) 15
 -- 気圧・高さ関連
 bufrAtTableRef (FXY 0   7   6) = bufrFlag DEG 0 (-      0) 15
+-- 航空機関連
+bufrAtTableRef (FXY 0   8  21) = bufrFlag  NA 0      0   5
+
 -- 風速関連
 bufrAtTableRef (FXY 0  11   1) = bufrFlag DEG  0 (     0)  9 -- 風向
 bufrAtTableRef (FXY 0  11   2) = bufrFlag DEG  1 (     0) 12 -- 風速
@@ -283,11 +308,43 @@ bufrAtTableRef (FXY 0  11   4) = bufrFlag M_S  1 (- 4096) 13 -- v成分（南北
 bufrAtTableRef (FXY 0  11   5) = bufrFlag PA_S 1 (-  512) 10 -- w成分[Pa/s]
 bufrAtTableRef (FXY 0  11   6) = bufrFlag M_S  2 (- 4096) 13 -- w成分（鉛直成分）
 
-bufrAtTableRef (FXY 0  21  30) = bufrFlag  DB 0 (-    32) 8 -- w成分（鉛直成分）
+bufrAtTableRef (FXY 0  21  30) = bufrFlag  DB 0 (-    32)  8 -- 
+-- 遅延記述子
+bufrAtTableRef (FXY 0  31   0) = bufrFlag  NA 0        0   1 -- 1bit反復因子
+bufrAtTableRef (FXY 0  31   1) = bufrFlag  NA 0        0   8 -- 反復因子
+bufrAtTableRef (FXY 0  31   2) = bufrFlag  NA 0        0  16 -- 拡張反復因子
+bufrAtTableRef (FXY 0  31  11) = bufrFlag  NA 0        0   8 -- 資料の反復因子
+bufrAtTableRef (FXY 0  31  12) = bufrFlag  NA 0        0  16 -- 資料の拡張復因子
+bufrAtTableRef (FXY 0  31  21) = bufrFlag  NA 0        0   6 -- 連結フィールドの意味
+bufrAtTableRef (FXY 0  31  31) = bufrFlag  NA 0        0   1 -- 資料存在指示符
+
+
+
 bufrAtTableRef _ = undefined 
 
 bufrOfElem :: BR.BUFRElement -> TableRefID
+bufrOfElem BR.Year       = FXY 0  4  1
+bufrOfElem BR.Month      = FXY 0  4  2
+bufrOfElem BR.Day        = FXY 0  4  3
+bufrOfElem BR.Hour       = FXY 0  4  4
+bufrOfElem BR.Minute     = FXY 0  4  5
+bufrOfElem BR.Second     = FXY 0  4  6
+bufrOfElem BR.Second_US  = FXY 0  4  7
+bufrOfElem BR.DeltaYear  = FXY 0  4 11
+bufrOfElem BR.DeltaMonth = FXY 0  4 12
+bufrOfElem BR.DeltaDay   = FXY 0  4 13
+bufrOfElem BR.DeltaHour  = FXY 0  4 14
+bufrOfElem BR.DeltaMinute= FXY 0  4 15
+bufrOfElem BR.DeltaSecond= FXY 0  4 16
+bufrOfElem BR.YearSpan   = FXY 0  4 21
+bufrOfElem BR.MonthSpan  = FXY 0  4 22
+bufrOfElem BR.DaySpan    = FXY 0  4 23
+bufrOfElem BR.HourSpan   = FXY 0  4 24
+bufrOfElem BR.MinuteSpan = FXY 0  4 25
+bufrOfElem BR.SecondSpan = FXY 0  4 26
+
 bufrOfElem BR.HeightFromStation = FXY 0  7  6
+bufrOfElem BR.TimeIdentify = FXY 0  8  21
 bufrOfElem BR.WindDirection = FXY 0 11 1
 bufrOfElem BR.WindSpeed     = FXY 0 11 2
 bufrOfElem BR.WindWE        = FXY 0 11 3
@@ -295,6 +352,14 @@ bufrOfElem BR.WindSN        = FXY 0 11 4
 bufrOfElem BR.WindV_PaS     = FXY 0 11 5
 bufrOfElem BR.WindV_MS      = FXY 0 11 6
 bufrOfElem BR.SN            = FXY 0 21 30
+bufrOfElem BR.DelayFlag        = FXY 0 31  0
+bufrOfElem BR.DelayRepeat      = FXY 0 31  1
+bufrOfElem BR.DelayRepeatEX    = FXY 0 31  2
+bufrOfElem BR.DelayBitRepeat   = FXY 0 31 11
+bufrOfElem BR.DelayBitRepeatEX = FXY 0 31 12
+bufrOfElem BR.DelayBind        = FXY 0 31 21
+bufrOfElem BR.DelayBitExist    = FXY 0 31 31
+
 
 bufrOfElem _             = undefined
 

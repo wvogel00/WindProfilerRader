@@ -159,21 +159,25 @@ data      Wind = Wind SouthWind WestWind VertWind deriving Eq
 data MeasuredWind = MeasuredWind {mwHeight :: Height, mwWind :: Wind, mwSN :: SN} deriving Eq
 type SN = Float
 data IUPC = IUPC Int deriving (Show, Eq)
+
+sWind (Wind s _ _) = s
+wWind (Wind _ w _) = w
+vWind (Wind _ _ v) = v
+
 instance Show MeasuredWind where
   show mw@(MeasuredWind _ (Wind s w _)  _) = 
             "　　観測点高: " ++ showfDigitN 4 1 (mwHeight mw) ++
             "　　（南風，西風，鉛直風）＝" ++ show (mwWind mw) ++ 
-            "　　S/N: " ++ showfDigitN 3 1 (mwSN mw)  ++ 
-            "　　風向: " ++ show (calc2DDirection s w) ++ "\n"
+            "　　S/N: " ++ showfDigitN 3 1 (mwSN mw) ++ "\n"
 instance Show Wind where
   show (Wind (S s) (W w) (V v)) = "("  ++ showfDigitN 3 1 s ++ 
                                   ", " ++ showfDigitN 3 1 w ++
                                   ", " ++ showfDigitN 3 1 v ++ 
                                   ")"
 -- 風向resolution
-type WDResolution = Int
-type WindDirection = Int
-wdRes = 16
+--type WDResolution = Int
+--type WindDirection = Int
+--wdRes = 16
 
 areaName :: IUPC -> [Text]
 areaName (IUPC 41) = ["留萌", "帯広", "室蘭"]
@@ -187,17 +191,3 @@ areaName (IUPC 48) = ["厳原", "平戸", "屋久島", "与那国島"]
 areaName (IUPC 49) = ["八丈島", "美浜", "鳥取"]
 areaName (IUPC 50) = ["市來", "名瀬", "南大東島"]
 
--- 0:微風，16:南風 4: 西風
-calc2DDirection :: SouthWind -> WestWind -> WindDirection
-calc2DDirection (S s) (W w)
-  | abs s < 0.3 && abs w < 0.3 = 1000
-  | s == 0 =  (8 - 4 * (floor $ signum w))
-  | w == 0 =  4 - 4 * (floor $ signum s)
-  | s > 0 && w > 0 =  getWD $ atan (w/s)/pi*180
-  | s < 0 && w > 0 =  getWD $  90+atan ((abs s)/w)/pi*180
-  | s < 0 && w < 0 =  getWD $ 180+atan ((abs w)/ (abs s))/pi*180
-  | s > 0 && w < 0 =  getWD $ 270+atan ((abs s)/w)/pi*180
-
-getDeg a b = atan (b/a)/pi*180
-getWD deg = fst . head . filter (f deg) $ zip (16:[1..16]) $ [0, 360/wdRes .. 360]++[360] where
-  f d (i, d') = d'-180/wdRes < d && d < d'+180/wdRes

@@ -177,14 +177,14 @@ block4P wmoDB = do
 measurementsP :: Int -> BitState -> Get ([Measurement], BitState)
 measurementsP 0 bs = return ([], bs)
 measurementsP i bs = do
-  ( y, bs1)  <-trace (show i ++" year") <$> getBits 12 bs
-  ( m, bs2)  <- getBits  4 bs1
-  ( d, bs3)  <- getBits  6 bs2
-  ( h, bs4)  <- getBits  5 bs3
-  (mt, bs5)  <- getBits  6 bs4
-  (tID, bs6) <- getBits  5 bs5
-  (ts, bs7)  <- getBits 12 bs6
-  (rN, bs8)  <- getBits  8 bs7
+  ( y, bs1)  <- readValue BR.Year   bs
+  ( m, bs2)  <- readValue BR.Month  bs1
+  ( d, bs3)  <- readValue BR.Day    bs2
+  ( h, bs4)  <- readValue BR.Hour   bs3
+  (mt, bs5)  <- readValue BR.Minute bs4
+  (tID, bs6) <- readValue BR.TimeIdentify bs5
+  (ts, bs7)  <- readValue BR.MinuteSpan bs6
+  (rN, bs8)  <- readValue BR.DelayRepeat bs7
   (ws, bs9)  <- windsP rN bs8
   (ms, bs10)  <- measurementsP (i-1) bs9
   return $ ( Measurement { mDate   = Date y m d h mt 0
@@ -194,14 +194,25 @@ measurementsP i bs = do
                          , measuredWinds = ws
                          } : ms , bs10)
 
+readValueF :: BR.BUFRElement -> BitState -> Get (Float, BitState)
+readValueF bElem bs = do
+  let bufrFlag@(BUFR.BUFRFlag _ _ _ bits) = BUFR.bufrAtTableRef $ BUFR.bufrOfElem bElem
+  (v, bs') <- getBits bits bs
+  return $ ((fromIntegral v) .| bElem, bs')
+
+readValue ::  BR.BUFRElement -> BitState -> Get (Int, BitState)
+readValue bElem bs = readValueF bElem bs >>= (\(v,bs') ->  return (floor v, bs'))
+
+
+
 windsP :: Int -> BitState -> Get ([MeasuredWind], BitState)
 windsP 0 bs = return ([], bs)
 windsP i bs = do
   (  mwH, bs1) <- convert BR.HeightFromStation <$> getBits 15 bs
   (    q, bs2) <- getBits  8 bs1
-  (wWind, bs3) <- convert BR.WindWE <$> getBits 13 bs2
-  (sWind, bs4) <- convert BR.WindSN <$> getBits 13 bs3
-  (vWind, bs5) <- convert BR.WindV_MS <$> getBits 13 bs4
+  (wWind, bs3) <- readValueF BR.WindWE bs2
+  (sWind, bs4) <- readValueF BR.WindSN bs3
+  (vWind, bs5) <- readValueF BR.WindV_MS bs4
   (   sn, bs6) <- convert BR.SN <$> getBits  8 bs5
   (   ws, bs7) <- windsP (i-1) bs6 
   let wind = Wind (S $ sWind) (W $ wWind) (V $ vWind) 
@@ -224,10 +235,10 @@ wprP wmoTable = do
   block4 <- block4P wmoTable
   return (header, block0, block1, block3, block4)
 
-analyze :: FilePath -> IO()
+analyze :: FilePath -> IO Block4
 analyze file = do
   wmoTable <- BUFR.readWMOTable
   bs <- BL.readFile file
-  let wrp = runGet (wprP wmoTable) bs
-  print wrp
-
+  let wrp@(h, h2, b1, b3, b4) = runGet (wprP wmoTable) bs
+  -- print wrp
+  return b4
